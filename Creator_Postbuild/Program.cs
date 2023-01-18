@@ -70,9 +70,9 @@ namespace Creator_PostBuild
                 Console.WriteLine("Error, arguments not met!\r\nAdapt buildfile for use with this version and fix arguments.");
                 Environment.Exit(1);
             }
-            bool stripOTX = false;
+            bool targetOTX = false;
             bool keepMain = false;
-            if (args.Contains("-stripOTX")) stripOTX = true;
+            if (args.Contains("-stripOTX")) targetOTX = true;
             if (args.Contains("-keepMain")) keepMain = true;
 
             string fileExportIDE = Environment.CurrentDirectory + @"\Export\PSoCCreatorExportIDE.xml";
@@ -94,7 +94,7 @@ namespace Creator_PostBuild
             }
             if (parseXMLfileResult.error != 0) Environment.Exit(parseXMLfileResult.error);
 
-            if (stripOTX)      // Parse of CyFitter File into new file for OTX if needed
+            if (targetOTX)      // Parse of CyFitter File into new file for OTX if needed
             {
                 Console.WriteLine("\r\nTarget file: " + fileCyFitter);
                 parseResult_c parseCyFitterResult = parseCyFitterCfg(fileCyFitter, xmlOut);
@@ -104,7 +104,7 @@ namespace Creator_PostBuild
             }
 
             Console.WriteLine("\r\nTarget file: " + fileMesonBuild);
-            parseResult_c parseMesonBuildResult = parseMesonBuild(fileMesonBuild, xmlOut, stripOTX);
+            parseResult_c parseMesonBuildResult = parseMesonBuild(fileMesonBuild, xmlOut, targetOTX);
             if (parseMesonBuildResult.message != "") Console.WriteLine(parseMesonBuildResult.message);
             if (parseMesonBuildResult.writeOutput) File.WriteAllLines(fileMesonBuild, parseMesonBuildResult.output as List<string>);
             if (parseMesonBuildResult.error != 0) Environment.Exit(parseMesonBuildResult.error);

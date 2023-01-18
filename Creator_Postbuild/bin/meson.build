@@ -103,7 +103,23 @@ linker_args     = [
 # Creator_PostBuild_IncludeHeaderDirs_End - automatic insert of linker options by Creator_PostBuild. Do not edit above this line
 ]
 
+
+
+incdirs       = [
+# OTX_Extension_HeaderFiles_Start - automatic insert of source files by CoreStripper. Do not edit below this line
+	'source/OnethinxCore',
+	'source',
+# OTX_Extension_HeaderFiles_End - automatic insert of source files by CoreStripper. Do not edit above this line
+# Creator_PostBuild__IncludeFolders_Start - automatic insert of include header folders by Creator_PostBuild. Do not edit below this line
+	'Debug/Generated_Source/PSoC4',
+# Creator_PostBuild__IncludeFolders_End - automatic insert of include header folders by Creator_PostBuild. Do not edit above this line
+]
+
 sourcefiles       = [
+# OTX_Extension_SourceFiles_Start - automatic insert of source files by CoreStripper. Do not edit below this line
+	'source/OnethinxCore/OnethinxCore01.c',
+	'source/main.c',
+# OTX_Extension_SourceFiles_End - automatic insert of source files by CoreStripper. Do not edit above this line
 # Creator_PostBuild_SourceFiles_Start - automatic insert of source files by Creator_PostBuild. Do not edit below this line
 	'Debug/Generated_Source/PSoC4/cyfitter_cfg.c',
 	'Debug/Generated_Source/PSoC4/cymetadata.c',
@@ -141,12 +157,6 @@ sourcefiles       = [
 	'Debug/Generated_Source/PSoC4/cy_em_eeprom.c',
 	'Debug/Generated_Source/PSoC4/CyBootAsmGnu.s',
 # Creator_PostBuild_SourceFiles_End - automatic insert of source files by Creator_PostBuild. Do not edit above this line
-]
-
-incdirs       = [
-# Creator_PostBuild__IncludeFolders_Start - automatic insert of include header folders by Creator_PostBuild. Do not edit below this line
-	'Debug/Generated_Source/PSoC4',
-# Creator_PostBuild__IncludeFolders_End - automatic insert of include header folders by Creator_PostBuild. Do not edit above this line
 ]
 
 #==============================================================================#
@@ -200,4 +210,3 @@ mainout = custom_target(
     command          : [memcalc, readelf, PROJECTNAME + '.elf', '0x0e0000', '0x38000', '0x10000000', '0x08000000', PROJECTNAME + '.memcalc.txt'],  #Flash 0x0e0000   SRAM 0x38000   Flash start 0x10000000   SRAM start 0x08000000
    # command          : [memcalc, PROJECTNAME + '.readelf', '0x0e0000', '0x38000', '0x10000000', '0x08000000', PROJECTNAME + '.memcalc2.txt'],  #Flash 0x0e0000   SRAM 0x38000   Flash start 0x10000000   SRAM start 0x08000000
     depends          : [main])
-
