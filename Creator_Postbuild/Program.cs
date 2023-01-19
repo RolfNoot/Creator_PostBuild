@@ -388,9 +388,11 @@ namespace Creator_PostBuild
             parseResult_c parseResult = new parseResult_c(parseOut, "Done!", 0, true);
             string currentDirName = new DirectoryInfo(Environment.CurrentDirectory).Name + "/";
             bool copying = true; int linesStripped = 0;
+            string minimumVersion = "";
             for (int cnt = 0; cnt < cFile.Length; cnt++)
             {
                 string cline = cFile[cnt];
+                if (cline.Contains("Creator_PostBuild_Minumum_Version")) minimumVersion = cline;
                 if (cline.Contains("_SourceFiles_End") ||
                     cline.Contains("_IncludeHeaderDirs_End") ||
                     cline.Contains("_IncludeFolders_End") ||
@@ -401,7 +403,7 @@ namespace Creator_PostBuild
                     ) copying = true;
                 if (copying) parseOut.Add(cline);
                 if (linesStripped > 0 && --linesStripped == 0) copying = true;
-                if (cline.Contains("_SourceFiles_Start"))
+                if (cline.Contains("Creator_PostBuild_SourceFiles_Start"))
                 {
                     foreach (string line in xmlOut.sourceFiles)
                     {
@@ -410,7 +412,7 @@ namespace Creator_PostBuild
                     }
                     copying = false;
                 }
-                else if (cline.Contains("_IncludeHeaderDirs_Start") || cline.Contains("_IncludeFolders_Start"))
+                else if (cline.Contains("Creator_PostBuild_IncludeFolders_Start"))
                 {
                     foreach (string line in xmlOut.includeFolders)
                     {
@@ -419,7 +421,7 @@ namespace Creator_PostBuild
                     }
                     copying = false;
                 }
-                else if (cline.Contains("_LibSources_Start"))
+                else if (cline.Contains("Creator_PostBuild_LibSources_Start"))
                 {
                     foreach (string line in xmlOut.libraryFiles)
                     {
@@ -434,7 +436,7 @@ namespace Creator_PostBuild
                     }
                     copying = false;
                 }
-                else if (cline.Contains("_AssemblerOptions_Start"))
+                else if (cline.Contains("Creator_PostBuild_AssemblerOptions_Start"))
                 {
                     foreach (string line in fixAndStripOptions(xmlOut.assemblerOptions))
                     {
@@ -442,7 +444,7 @@ namespace Creator_PostBuild
                     }
                     copying = false;
                 }
-                else if (cline.Contains("_CompilerOptions_Start"))
+                else if (cline.Contains("Creator_PostBuild_CompilerOptions_Start"))
                 {
                     foreach (string line in fixAndStripOptions(xmlOut.compilerOptions))
                     {
@@ -450,49 +452,70 @@ namespace Creator_PostBuild
                     }
                     copying = false;
                 }
-                else if (cline.Contains("_LinkerOptions_Start"))
+                else if (cline.Contains("Creator_PostBuild_LinkerOptions_Start"))
                 {
                     foreach (string line in fixAndStripOptions(xmlOut.linkerOptions))
                     {
-                        if (!targetOTX || (!line.StartsWith("-L") && !line.StartsWith("-T")))      // if OTX found, do not add -L and -T options
-                            parseOut.Add("\t'" + line + "',");
+                        //if (!targetOTX || (!line.StartsWith("-L") && !line.StartsWith("-T")))      // if OTX found, do not add -L and -T options
+                        //    parseOut.Add("\t'" + line + "',");
+                        if (line.StartsWith("-L") || line.StartsWith("-T"))     // check for folder references
+                        {
+                            if (!targetOTX) parseOut.Add("\t'" + line.Replace('\\', '/') + "',");       // Reformat and add when not using OTX target
+                        }
+                        else parseOut.Add("\t'" + line + "',");
                     }
                     copying = false;
                 }
-                else if (cline.Contains("_devicePart_Line"))
+                else if (cline.Contains("Creator_PostBuild_devicePart_Line"))
                 {
                     parseOut.Add("devicePart = '" + xmlOut.devicePart + "'");
                     copying = false; linesStripped = 1;
                 }
-                else if (cline.Contains("_linkerFile"))
+                else if (cline.Contains("Creator_PostBuild_linkerFile"))
                 {
-                    parseOut.Add("linkerFile = '" + xmlOut.linkerFile + "'");
+                    parseOut.Add("linkerFile = '" + xmlOut.linkerFile.Replace('\\', '/') + "'");
                     copying = false; linesStripped = 1;
                 }
-                else if (cline.Contains("_SVDfile_Line"))
+                else if (cline.Contains("Creator_PostBuild_SVDfile_Line"))
                 {
                     parseOut.Add("SVDfile = '" + xmlOut.SVDfile + "'");
                     copying = false; linesStripped = 1;
                 }
-                else if (cline.Contains("_prePostBuild_Lines"))
+                else if (cline.Contains("Creator_PostBuild_prePostBuild_Lines"))
                 {
                     parseOut.Add("preBuildCommands = '" + xmlOut.prebuild + "'");
                     parseOut.Add("postBuildCommands = '" + xmlOut.postbuild + "'");
                     copying = false; linesStripped = 2;
                 }
-                else if (cline.Contains("Creator_PostBuildVersion_Line"))
+                else if (cline.Contains("Creator_PostBuild_Version_Line"))
                 {
                     parseOut.Add("creatorPostBuildVersion = '" + version + "'");
                     copying = false; linesStripped = 1;
                 }
-                else if (cline.Contains("Creator_DateTime_Line"))
+                else if (cline.Contains("Creator_PostBuild_DateTime_Line"))
                 {
                     parseOut.Add("creatorGeneratedDateTime = '" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "'");
                     copying = false; linesStripped = 1;
-                }//
+                }
+                else if (cline.Contains("Creator_PostBuild_Directory_Line"))
+                {
+                    parseOut.Add("creatorDirectory = '" + new DirectoryInfo(Environment.CurrentDirectory).Name + "'");
+                    copying = false; linesStripped = 1;
+                }
             }
 
             if (copying == false) return new parseResult_c("PARSE ERROR, check meson.build insert syntax.\r\n", 1, false);
+            if (minimumVersion == "") return new parseResult_c("Error: Creator_PostBuild_Minumum_Version not found!\r\nUse updated meson.build template.\r\n", 1, false);
+            var result = Regex.Matches(minimumVersion, "['\"](\\d*\\.\\d*)['\"]");
+            try
+            {
+                if (float.Parse(result[0].Groups[1].Value) < float.Parse(version))
+                return new parseResult_c("Error: Creator_PostBuild Minumum Version not met. Update meson.build.\r\n", 1, false);
+            }
+            catch
+            {
+                    return new parseResult_c("Error: Creator_PostBuild_Minumum_Version insert error, check syntax.\r\n", 1, false);
+            }
 
             return parseResult;
         }
@@ -500,12 +523,11 @@ namespace Creator_PostBuild
         static List<string> fixAndStripOptions(string options)
         {
             List<string> optionsOut = new List<string>();
-            //options = options.Replace(" -D ", " -D").Replace(" -L ", " -L").Replace(" -L ", " -L");"(\s-[A-Z])\s"
             options = Regex.Replace(options, @"(\s-[A-Z])\s", "$1");
-            string[] optionsArray = Regex.Split(options, "(?<=^[^\"]*(?:\"[^\"]*\"[^\"]*)*) (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+            string[] optionsArray = Regex.Split(options, "(?<=^[^\"]*(?:\"[^\"]*\"[^\"]*)*) (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");     // Split options by whitespace, unless quoted
             foreach (string line in optionsArray)
             {
-                if (!line.StartsWith("-I") && !line.Contains("${")) // Only maintain options not referring files/locations
+                if (!line.StartsWith("-I") && !line.Contains("${")) // Only maintain options not including PSoC Creator referred files/locations
                     optionsOut.Add(line);
             }
             return optionsOut;

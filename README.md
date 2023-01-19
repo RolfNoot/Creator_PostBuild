@@ -18,6 +18,11 @@ creatorPostBuildVersion = ...
 # Creator_DateTime_Line - automatic insert of Creator Generated DateTime. Do not edit the line below
 creatorGeneratedDateTime = ...
 ```
+<b>Creator Project main directory insertion:</b>
+```
+Creator_Directory_Line - automatic insert of Creator Project main directory. Do not edit the line below
+creatorDirectory = ...
+```
 <b>Device Part insertion:</b>
 ```
 # Creator_PostBuild_devicePart_Line - automatic insert of device part by Creator_PostBuild. Do not edit the line below

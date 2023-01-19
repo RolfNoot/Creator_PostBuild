@@ -9,15 +9,31 @@ cpu_family = 'arm'
 cpu        = 'cortex-m4'
 endian     = 'little'
 
-#==============================================================================#
-# initialize some globals
-srcs          = []
-incdirs       = []
-c_args        = []
-link_args     = []
-link_deps     = []
+#================================================================================================================================#
+# check Creator_PostBuild version and set various variables for possible use
 
-#==============================================================================#
+# Creator_PostBuild_Minumum_Version: '2.10' - used for checking Creator_PostBuild minimum version, do not remove
+
+# Creator_PostBuild_Version_Line - automatic insert of Creator_PostBuild version. Do not edit the line below
+creatorPostBuildVersion = '2.10'
+
+# Creator_PostBuild_DateTime_Line - automatic insert of Creator Generated DateTime. Do not edit the line below
+creatorGeneratedDateTime = '2023-01-19 16:18:24'
+
+# Creator_PostBuild_devicePart_Line - automatic insert of device part by Creator_PostBuild. Do not edit the line below
+devicePart = 'CY8C4248LQI-BL583'
+
+# Creator_PostBuild_linkerFile_Line - automatic insert of linker file by Creator_PostBuild. Do not edit the line below
+linkerFile = './Generated_Source/PSoC4/cm0gcc.ld'
+
+# Creator_PostBuild_SVDfile_Line - automatic insert of SVD file by Creator_PostBuild. Do not edit the line below
+SVDfile = 'PSoC_Creator.svd'
+
+# Creator_PostBuild_prePostBuild_Lines - automatic insert of pre- and postbuild commands by Creator_PostBuild. Do not edit the two line below
+preBuildCommands = ''
+postBuildCommands = ''
+
+#================================================================================================================================#
 # set directories
 
 if build_machine.system() == 'windows'
@@ -31,30 +47,13 @@ else
 endif
 
 CONFIG_DIR = ONETHINX_PACK_LOC + '/config'
-
 MESON_SOURCE_LOC = meson.current_source_dir()
-CREATOR_DIR = 'Onethinx_Creator.cydsn'
 
-# Creator_PostBuildVersion_Line - automatic insert of Creator_PostBuild version. Do not edit the line below
-creatorPostBuildVersion = '2.10'
+# Creator_PostBuild_Directory_Line - automatic insert of Creator Project main directory. Do not edit the line below
+creatorDirectory = 'Debug'
+CREATOR_DIR = meson.current_source_dir() + '/' + creatorDirectory
 
-# Creator_DateTime_Line - automatic insert of Creator Generated DateTime. Do not edit the line below
-creatorGeneratedDateTime = '2023-01-19 11:43:02'
-
-# Creator_PostBuild_devicePart_Line - automatic insert of device part by Creator_PostBuild. Do not edit the line below
-devicePart = 'CY8C4248LQI-BL583'
-
-# Creator_PostBuild_linkerFile_Line - automatic insert of linker file by Creator_PostBuild. Do not edit the line below
-linkerFile = '.\Generated_Source\PSoC4\cm0gcc.ld'
-
-# Creator_PostBuild_SVDfile_Line - automatic insert of SVD file by Creator_PostBuild. Do not edit the line below
-SVDfile = 'PSoC_Creator.svd'
-
-# Creator_PostBuild_prePostBuild_Lines - automatic insert of pre- and postbuild commands by Creator_PostBuild. Do not edit the two line below
-preBuildCommands = ''
-postBuildCommands = ''
-
-#==============================================================================#
+#================================================================================================================================#
 # import tools
 
 objcopy  		= find_program('arm-none-eabi-objcopy').path()
@@ -65,7 +64,7 @@ cymcuelftool 	= find_program(ONETHINX_TOOLS_LOC + '/cymcuelftool-1.0/bin/cymcuel
 readelf  		= find_program('arm-none-eabi-readelf').path()
 memcalc 		= find_program(CONFIG_DIR + '/scripts/memcalc').path()
 
-#==============================================================================#
+#================================================================================================================================#
 # setup compile & link arguments
 
 assembler_args +=
@@ -95,8 +94,8 @@ linker_args     = [
 # Creator_PostBuild_LinkerOptions_Start - automatic insert of linker options by Creator_PostBuild. Do not edit below this line
 	'-mcpu=cortex-m0',
 	'-mthumb',
-	'-LGenerated_Source\PSoC4',
-	'-TGenerated_Source\PSoC4\cm0gcc.ld',
+	'-LGenerated_Source/PSoC4',
+	'-TGenerated_Source/PSoC4/cm0gcc.ld',
 	'-specs=nano.specs',
 	'-Wl,--gc-sections',
 	'-g',
@@ -106,56 +105,23 @@ linker_args     = [
 # Creator_PostBuild_LinkerOptions_End - automatic insert of linker options by Creator_PostBuild. Do not edit above this line
 ]
 
-
-
-incdirs       = [
-# OTX_Extension_HeaderFiles_Start - automatic insert of source files by CoreStripper. Do not edit below this line
+include_dirs       = [
+# OTX_Extension_HeaderFiles_Start - automatic insert of source files by the OTX VSCode extension. Do not edit below this line
 	'source/OnethinxCore',
 	'source',
-# OTX_Extension_HeaderFiles_End - automatic insert of source files by CoreStripper. Do not edit above this line
+# OTX_Extension_HeaderFiles_End - automatic insert of source files by the OTX VSCode extension. Do not edit above this line
 # Creator_PostBuild__IncludeFolders_Start - automatic insert of include header folders by Creator_PostBuild. Do not edit below this line
 	'Debug/Generated_Source/PSoC4',
 # Creator_PostBuild__IncludeFolders_End - automatic insert of include header folders by Creator_PostBuild. Do not edit above this line
 ]
 
 sourcefiles       = [
-# OTX_Extension_SourceFiles_Start - automatic insert of source files by CoreStripper. Do not edit below this line
-	'Debug/Generated_Source/PSoC4/cyfitter_cfg.c',
-	'Debug/Generated_Source/PSoC4/cymetadata.c',
-	'Debug/Generated_Source/PSoC4/BLE.c',
-	'Debug/Generated_Source/PSoC4/BLE_gatt.c',
-	'Debug/Generated_Source/PSoC4/BLE_eventHandler.c',
-	'Debug/Generated_Source/PSoC4/BLE_HAL_INT.c',
-	'Debug/Generated_Source/PSoC4/BLE_HAL_PVT.c',
-	'Debug/Generated_Source/PSoC4/BLE_custom.c',
-	'Debug/Generated_Source/PSoC4/Conn_LED.c',
-	'Debug/Generated_Source/PSoC4/Conn_LED_PM.c',
-	'Debug/Generated_Source/PSoC4/UART.c',
-	'Debug/Generated_Source/PSoC4/UART_SPI_UART.c',
-	'Debug/Generated_Source/PSoC4/UART_SPI_UART_INT.c',
-	'Debug/Generated_Source/PSoC4/UART_PM.c',
-	'Debug/Generated_Source/PSoC4/UART_UART.c',
-	'Debug/Generated_Source/PSoC4/UART_BOOT.c',
-	'Debug/Generated_Source/PSoC4/UART_UART_BOOT.c',
-	'Debug/Generated_Source/PSoC4/Adv_LED.c',
-	'Debug/Generated_Source/PSoC4/Adv_LED_PM.c',
-	'Debug/Generated_Source/PSoC4/BLE_bless_isr.c',
-	'Debug/Generated_Source/PSoC4/UART_SCBCLK.c',
-	'Debug/Generated_Source/PSoC4/UART_tx.c',
-	'Debug/Generated_Source/PSoC4/UART_tx_PM.c',
-	'Debug/Generated_Source/PSoC4/UART_SCB_IRQ.c',
-	'Debug/Generated_Source/PSoC4/UART_rx.c',
-	'Debug/Generated_Source/PSoC4/UART_rx_PM.c',
-	'Debug/Generated_Source/PSoC4/Cm0Start.c',
-	'Debug/Generated_Source/PSoC4/CyFlash.c',
-	'Debug/Generated_Source/PSoC4/CyLib.c',
-	'Debug/Generated_Source/PSoC4/cyPm.c',
-	'Debug/Generated_Source/PSoC4/cyutils.c',
-	'Debug/Generated_Source/PSoC4/CyDMA.c',
-	'Debug/Generated_Source/PSoC4/CyLFClk.c',
-	'Debug/Generated_Source/PSoC4/cy_em_eeprom.c',
-	'Debug/Generated_Source/PSoC4/CyBootAsmGnu.s',
-# OTX_Extension_SourceFiles_End - automatic insert of source files by CoreStripper. Do not edit above this line
+	CREATOR_DIR + '/gcc/startup_psoc6_01_cm4.S',
+	CREATOR_DIR + '/system_psoc6_cm4.c',
+# OTX_Extension_SourceFiles_Start - automatic insert of source files by the OTX VSCode extension. Do not edit below this line
+	'source/OnethinxCore/OnethinxCore01.c',
+	'source/main.c',
+# OTX_Extension_SourceFiles_End - automatic insert of source files by the OTX VSCode extension. Do not edit above this line
 # Creator_PostBuild_SourceFiles_Start - automatic insert of source files by Creator_PostBuild. Do not edit below this line
 	'Debug/Generated_Source/PSoC4/cyfitter_cfg.c',
 	'Debug/Generated_Source/PSoC4/cymetadata.c',
@@ -195,14 +161,14 @@ sourcefiles       = [
 # Creator_PostBuild_SourceFiles_End - automatic insert of source files by Creator_PostBuild. Do not edit above this line
 ]
 
-#==============================================================================#
+#================================================================================================================================#
 # include libraries
 
 cc = meson.get_compiler('c')
 
 # example: include library.a from directory
-#link_deps += declare_dependency( dependencies : cc.find_library('library', dirs : ['directory/libdir']) )
-link_deps += [
+#link_deps = declare_dependency( dependencies : cc.find_library('library', dirs : ['directory/libdir']) )
+link_deps = [
 # Creator_PostBuild_LibSources_Start - automatic insert of include source files by Creator_PostBuild. Do not edit below this line
 	declare_dependency( dependencies : cc.find_library('gccCyBLEStack_BLE_SOC_PERIPHERAL', dirs : [CREATOR_DIR + '/./Export/ARM_GCC_Generic/BLE_v3_66']) ),
 # Creator_PostBuild_LibSources_End - automatic insert of include source files by Creator_PostBuild. Do not edit above this line
@@ -211,13 +177,13 @@ link_deps += [
 # example: include object.o from directory
 #link_deps += declare_dependency( link_args : ['directory/libdir/object.o'] )
 
-#==============================================================================#
+#================================================================================================================================#
 # run prebuild script 
 
 #prebuild = custom_target('prebuild', output : 'buildversion.h', command : [MESON_SOURCE_LOC+'/config/prebuild.bash']) #use prebuild.bash / prebuild.bat file
 #link_deps += declare_dependency( sources : [prebuild])
 
-#==============================================================================#
+#================================================================================================================================#
 # build executable
 
 main = executable(
@@ -226,9 +192,9 @@ main = executable(
             c_args              : [compiler_args],
             link_args           : [linker_args],
             dependencies        : link_deps,
-            include_directories : [incdirs] )
+            include_directories : [include_dirs] )
 
-#==============================================================================#
+#================================================================================================================================#
 # run post build
 
 signed = custom_target(
