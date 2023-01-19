@@ -58,10 +58,10 @@ namespace Creator_PostBuild
                 Console.WriteLine(
                     "Run this tool the PSoC Creator project directory\r\n" +
                     "OPTIONS:\r\n" +
-                    "-v2       : mandatory, v2 for this version. Returns error if v2 not matches.\r\n" +
-                    "-stripOTX : parses the cyfitter_cfg.c to cyfitter_otx_cfg.c\r\n" +
+                    "-v2        : mandatory, v2 for this version. Returns error if v2 not matches.\r\n" +
+                    "-targetOTX : parses the cyfitter_cfg.c to cyfitter_otx_cfg.c\r\n" +
                     "            and removes the linker file from the linker options.\r\n" +
-                    "-keepMain : keep the references to the main project sourcefiles."
+                    "-keepMain  : keep the references to the main project sourcefiles."
                  );
                 return;
             }
@@ -72,7 +72,7 @@ namespace Creator_PostBuild
             }
             bool targetOTX = false;
             bool keepMain = false;
-            if (args.Contains("-stripOTX")) targetOTX = true;
+            if (args.Contains("-targetOTX")) targetOTX = true;
             if (args.Contains("-keepMain")) keepMain = true;
 
             string fileExportIDE = Environment.CurrentDirectory + @"\Export\PSoCCreatorExportIDE.xml";
@@ -380,7 +380,7 @@ namespace Creator_PostBuild
         //    return parseResult;
         //}
 
-        private static parseResult_c parseMesonBuild(string cFileName, xmlResult xmlOut, bool stripOTX)
+        private static parseResult_c parseMesonBuild(string cFileName, xmlResult xmlOut, bool targetOTX)
         {
             if (!File.Exists(cFileName)) return new parseResult_c("Not found. OK", 0, false);
             string[] cFile = File.ReadAllLines(cFileName);
@@ -454,7 +454,7 @@ namespace Creator_PostBuild
                 {
                     foreach (string line in fixAndStripOptions(xmlOut.linkerOptions))
                     {
-                        if (!stripOTX || (!line.StartsWith("-L") && !line.StartsWith("-T")))      // if OTX found, do not add -L and -T options
+                        if (!targetOTX || (!line.StartsWith("-L") && !line.StartsWith("-T")))      // if OTX found, do not add -L and -T options
                             parseOut.Add("\t'" + line + "',");
                     }
                     copying = false;
