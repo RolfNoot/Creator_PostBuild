@@ -38,6 +38,9 @@ CREATOR_DIR = 'Onethinx_Creator.cydsn'
 # Creator_PostBuildVersion_Line - automatic insert of Creator_PostBuild version. Do not edit the line below
 creatorPostBuildVersion = '2.10'
 
+# Creator_DateTime_Line - automatic insert of Creator_PostBuild version. Do not edit the line below
+creatorGeneratedDateTime = '2023-01-19 11:43:02'
+
 # Creator_PostBuild_devicePart_Line - automatic insert of device part by Creator_PostBuild. Do not edit the line below
 devicePart = 'CY8C4248LQI-BL583'
 
@@ -100,7 +103,7 @@ linker_args     = [
 	'-ffunction-sections',
 	'-O0',
 	'-ffat-lto-objects',
-# Creator_PostBuild_IncludeHeaderDirs_End - automatic insert of linker options by Creator_PostBuild. Do not edit above this line
+# Creator_PostBuild_LinkerOptions_End - automatic insert of linker options by Creator_PostBuild. Do not edit above this line
 ]
 
 
@@ -117,8 +120,41 @@ incdirs       = [
 
 sourcefiles       = [
 # OTX_Extension_SourceFiles_Start - automatic insert of source files by CoreStripper. Do not edit below this line
-	'source/OnethinxCore/OnethinxCore01.c',
-	'source/main.c',
+	'Debug/Generated_Source/PSoC4/cyfitter_cfg.c',
+	'Debug/Generated_Source/PSoC4/cymetadata.c',
+	'Debug/Generated_Source/PSoC4/BLE.c',
+	'Debug/Generated_Source/PSoC4/BLE_gatt.c',
+	'Debug/Generated_Source/PSoC4/BLE_eventHandler.c',
+	'Debug/Generated_Source/PSoC4/BLE_HAL_INT.c',
+	'Debug/Generated_Source/PSoC4/BLE_HAL_PVT.c',
+	'Debug/Generated_Source/PSoC4/BLE_custom.c',
+	'Debug/Generated_Source/PSoC4/Conn_LED.c',
+	'Debug/Generated_Source/PSoC4/Conn_LED_PM.c',
+	'Debug/Generated_Source/PSoC4/UART.c',
+	'Debug/Generated_Source/PSoC4/UART_SPI_UART.c',
+	'Debug/Generated_Source/PSoC4/UART_SPI_UART_INT.c',
+	'Debug/Generated_Source/PSoC4/UART_PM.c',
+	'Debug/Generated_Source/PSoC4/UART_UART.c',
+	'Debug/Generated_Source/PSoC4/UART_BOOT.c',
+	'Debug/Generated_Source/PSoC4/UART_UART_BOOT.c',
+	'Debug/Generated_Source/PSoC4/Adv_LED.c',
+	'Debug/Generated_Source/PSoC4/Adv_LED_PM.c',
+	'Debug/Generated_Source/PSoC4/BLE_bless_isr.c',
+	'Debug/Generated_Source/PSoC4/UART_SCBCLK.c',
+	'Debug/Generated_Source/PSoC4/UART_tx.c',
+	'Debug/Generated_Source/PSoC4/UART_tx_PM.c',
+	'Debug/Generated_Source/PSoC4/UART_SCB_IRQ.c',
+	'Debug/Generated_Source/PSoC4/UART_rx.c',
+	'Debug/Generated_Source/PSoC4/UART_rx_PM.c',
+	'Debug/Generated_Source/PSoC4/Cm0Start.c',
+	'Debug/Generated_Source/PSoC4/CyFlash.c',
+	'Debug/Generated_Source/PSoC4/CyLib.c',
+	'Debug/Generated_Source/PSoC4/cyPm.c',
+	'Debug/Generated_Source/PSoC4/cyutils.c',
+	'Debug/Generated_Source/PSoC4/CyDMA.c',
+	'Debug/Generated_Source/PSoC4/CyLFClk.c',
+	'Debug/Generated_Source/PSoC4/cy_em_eeprom.c',
+	'Debug/Generated_Source/PSoC4/CyBootAsmGnu.s',
 # OTX_Extension_SourceFiles_End - automatic insert of source files by CoreStripper. Do not edit above this line
 # Creator_PostBuild_SourceFiles_Start - automatic insert of source files by Creator_PostBuild. Do not edit below this line
 	'Debug/Generated_Source/PSoC4/cyfitter_cfg.c',

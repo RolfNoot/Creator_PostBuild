@@ -394,7 +394,7 @@ namespace Creator_PostBuild
                 if (cline.Contains("_SourceFiles_End") ||
                     cline.Contains("_IncludeHeaderDirs_End") ||
                     cline.Contains("_IncludeFolders_End") ||
-                    cline.Contains("_LibSources_End") || 
+                    cline.Contains("_LibSources_End") ||
                     cline.Contains("_AssemblerOptions_End") ||
                     cline.Contains("_CompilerOptions_End") ||
                     cline.Contains("_LinkerOptions_End")
@@ -480,11 +480,16 @@ namespace Creator_PostBuild
                     parseOut.Add("postBuildCommands = '" + xmlOut.postbuild + "'");
                     copying = false; linesStripped = 2;
                 }
-                else if (cline.Contains("Creator_PostBuildVersion_Line")) 
+                else if (cline.Contains("Creator_PostBuildVersion_Line"))
                 {
                     parseOut.Add("creatorPostBuildVersion = '" + version + "'");
                     copying = false; linesStripped = 1;
                 }
+                else if (cline.Contains("Creator_DateTime_Line"))
+                {
+                    parseOut.Add("creatorGeneratedDateTime = '" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "'");
+                    copying = false; linesStripped = 1;
+                }//
             }
 
             if (copying == false) return new parseResult_c("PARSE ERROR, check meson.build insert syntax.\r\n", 1, false);
