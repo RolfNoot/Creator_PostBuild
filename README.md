@@ -13,6 +13,11 @@ The following tags are used for the insertion of the references into the meson.b
 # Creator_PostBuildVersion_Line - automatic insert of Creator_PostBuild version. Do not edit the line below
 creatorPostBuildVersion = ...
 ```
+<b>Creator Generated DateTime insertion:</b>
+```
+# Creator_DateTime_Line - automatic insert of Creator Generated DateTime. Do not edit the line below
+creatorGeneratedDateTime = ...
+```
 <b>Device Part insertion:</b>
 ```
 # Creator_PostBuild_devicePart_Line - automatic insert of device part by Creator_PostBuild. Do not edit the line below
