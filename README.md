@@ -8,6 +8,10 @@ The Creator_PostBuild tool is designed to run automatically at PSoC Creator Post
 
 The following tags are used for the insertion of the references into the meson.build file:
 
+<b>Creator_PostBuild version check (mandatory)</b>
+```
+# Creator_PostBuild_Minumum_Version: '2.10' - used for checking Creator_PostBuild minimum version, do not remove
+```
 <b>Creator_PostBuild version insertion:</b>
 ```
 # Creator_PostBuild_Version_Line - automatic insert of Creator_PostBuild version. Do not edit the line below
