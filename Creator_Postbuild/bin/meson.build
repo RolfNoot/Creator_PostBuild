@@ -18,7 +18,7 @@ endian     = 'little'
 creatorPostBuildVersion = '2.10'
 
 # Creator_PostBuild_DateTime_Line - automatic insert of Creator Generated DateTime. Do not edit the line below
-creatorGeneratedDateTime = '2023-01-19 16:18:24'
+creatorGeneratedDateTime = '2023-01-24 19:43:22'
 
 # Creator_PostBuild_devicePart_Line - automatic insert of device part by Creator_PostBuild. Do not edit the line below
 devicePart = 'CY8C4248LQI-BL583'
@@ -67,8 +67,7 @@ memcalc 		= find_program(CONFIG_DIR + '/scripts/memcalc').path()
 #================================================================================================================================#
 # setup compile & link arguments
 
-assembler_args +=
-[
+assembler_args = [
 # Creator_PostBuild_AssemblerOptions_Start - automatic insert of assembler options by Creator_PostBuild. Do not edit below this line
 	'-mcpu=cortex-m0',
 	'-mthumb',
@@ -77,7 +76,7 @@ assembler_args +=
 # Creator_PostBuild_AssemblerOptions_End - automatic insert of assembler options by Creator_PostBuild. Do not edit above this line
 ]
 
-compiler_args     += [
+compiler_args     = [
 # Creator_PostBuild_CompilerOptions_Start - automatic insert of compiler options by Creator_PostBuild. Do not edit below this line
 	'-mcpu=cortex-m0',
 	'-mthumb',
@@ -110,9 +109,9 @@ include_dirs       = [
 	'source/OnethinxCore',
 	'source',
 # OTX_Extension_HeaderFiles_End - automatic insert of source files by the OTX VSCode extension. Do not edit above this line
-# Creator_PostBuild__IncludeFolders_Start - automatic insert of include header folders by Creator_PostBuild. Do not edit below this line
+# Creator_PostBuild_IncludeFolders_Start - automatic insert of include header folders by Creator_PostBuild. Do not edit below this line
 	'Debug/Generated_Source/PSoC4',
-# Creator_PostBuild__IncludeFolders_End - automatic insert of include header folders by Creator_PostBuild. Do not edit above this line
+# Creator_PostBuild_IncludeFolders_End - automatic insert of include header folders by Creator_PostBuild. Do not edit above this line
 ]
 
 sourcefiles       = [
