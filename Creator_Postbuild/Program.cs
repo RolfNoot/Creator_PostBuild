@@ -86,7 +86,8 @@ namespace Creator_PostBuild
             parseResult_c parseXMLfileResult = parseXMLfile(fileExportIDE, keepMain);
             xmlResult xmlOut = parseXMLfileResult.output as xmlResult;
             if (parseXMLfileResult.message != "") Console.WriteLine(parseXMLfileResult.message);
-            if (parseXMLfileResult.writeOutput)
+            if (parseXMLfileResult.error == 0)
+            if (parseXMLfileResult.writeOutput) MergeIncludeFoldersFromOptions(xmlOut, xmlOut.compilerOptions);
             {
                 File.WriteAllLines("sourceFiles.txt", xmlOut.sourceFiles);
                 File.WriteAllLines("headerIncludeDirs.txt", xmlOut.includeFolders);
@@ -238,6 +239,19 @@ namespace Creator_PostBuild
 
             return parseResult;
         }
+        private static void MergeIncludeFoldersFromOptions(xmlResult xmlOut, string options)
+        {
+            foreach (string line in fixAndStripOptions(options, false))
+            {
+                if (line.StartsWith("-I"))
+                {
+                    string folder = line.Substring(2).Replace('/', '\\').Trim(new char[] { ' ', '\\' });
+                    if (!xmlOut.includeFolders.Contains(folder))
+                        xmlOut.includeFolders.Add(folder);
+                }
+            }
+        }
+
         //private static parseResult_c parseXMLfile2(string cFileName, out string devicePart)
         //{
         //    devicePart = null;
@@ -438,7 +452,7 @@ namespace Creator_PostBuild
                 }
                 else if (cline.Contains("Creator_PostBuild_AssemblerOptions_Start"))
                 {
-                    foreach (string line in fixAndStripOptions(xmlOut.assemblerOptions))
+                    foreach (string line in fixAndStripOptions(xmlOut.assemblerOptions, true))
                     {
                         parseOut.Add("\t'" + line + "',");
                     }
@@ -446,7 +460,7 @@ namespace Creator_PostBuild
                 }
                 else if (cline.Contains("Creator_PostBuild_CompilerOptions_Start"))
                 {
-                    foreach (string line in fixAndStripOptions(xmlOut.compilerOptions))
+                    foreach (string line in fixAndStripOptions(xmlOut.compilerOptions,true ))
                     {
                         parseOut.Add("\t'" + line + "',");
                     }
@@ -454,7 +468,7 @@ namespace Creator_PostBuild
                 }
                 else if (cline.Contains("Creator_PostBuild_LinkerOptions_Start"))
                 {
-                    foreach (string line in fixAndStripOptions(xmlOut.linkerOptions))
+                    foreach (string line in fixAndStripOptions(xmlOut.linkerOptions, true))
                     {
                         //if (!targetOTX || (!line.StartsWith("-L") && !line.StartsWith("-T")))      // if OTX found, do not add -L and -T options
                         //    parseOut.Add("\t'" + line + "',");
@@ -520,14 +534,14 @@ namespace Creator_PostBuild
             return parseResult;
         }
 
-        static List<string> fixAndStripOptions(string options)
+        static List<string> fixAndStripOptions(string options, bool stripIncludes)
         {
             List<string> optionsOut = new List<string>();
             options = Regex.Replace(options, @"(\s-[A-Z])\s", "$1");
             string[] optionsArray = Regex.Split(options, "(?<=^[^\"]*(?:\"[^\"]*\"[^\"]*)*) (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");     // Split options by whitespace, unless quoted
             foreach (string line in optionsArray)
             {
-                if (!line.StartsWith("-I") && !line.Contains("${")) // Only maintain options not including PSoC Creator referred files/locations
+                if ((!line.StartsWith("-I") || !stripIncludes) && !line.Contains("${")) // Only maintain options not including PSoC Creator referred files/locations
                     optionsOut.Add(line);
             }
             return optionsOut;

@@ -18,16 +18,16 @@ endian     = 'little'
 creatorPostBuildVersion = '2.10'
 
 # Creator_PostBuild_DateTime_Line - automatic insert of Creator Generated DateTime. Do not edit the line below
-creatorGeneratedDateTime = '2023-01-24 19:43:22'
+creatorGeneratedDateTime = '2023-01-26 16:51:55'
 
 # Creator_PostBuild_devicePart_Line - automatic insert of device part by Creator_PostBuild. Do not edit the line below
-devicePart = 'CY8C4248LQI-BL583'
+devicePart = 'CY8C6347BZI-BLD53'
 
 # Creator_PostBuild_linkerFile_Line - automatic insert of linker file by Creator_PostBuild. Do not edit the line below
-linkerFile = './Generated_Source/PSoC4/cm0gcc.ld'
+linkerFile = './cy8c6xx7_cm4_dual.ld'
 
 # Creator_PostBuild_SVDfile_Line - automatic insert of SVD file by Creator_PostBuild. Do not edit the line below
-SVDfile = 'PSoC_Creator.svd'
+SVDfile = 'Onethinx_Creator.svd'
 
 # Creator_PostBuild_prePostBuild_Lines - automatic insert of pre- and postbuild commands by Creator_PostBuild. Do not edit the two line below
 preBuildCommands = ''
@@ -69,7 +69,9 @@ memcalc 		= find_program(CONFIG_DIR + '/scripts/memcalc').path()
 
 assembler_args = [
 # Creator_PostBuild_AssemblerOptions_Start - automatic insert of assembler options by Creator_PostBuild. Do not edit below this line
-	'-mcpu=cortex-m0',
+	'-mcpu=cortex-m4',
+	'-mfloat-abi=softfp',
+	'-mfpu=fpv4-sp-d16',
 	'-mthumb',
 	'-g',
 	'-W',
@@ -78,28 +80,35 @@ assembler_args = [
 
 compiler_args     = [
 # Creator_PostBuild_CompilerOptions_Start - automatic insert of compiler options by Creator_PostBuild. Do not edit below this line
-	'-mcpu=cortex-m0',
+	'-mcpu=cortex-m4',
+	'-mfloat-abi=softfp',
+	'-mfpu=fpv4-sp-d16',
 	'-mthumb',
 	'-g',
 	'-DDEBUG',
+	'-DCY_CORE_ID=0',
+	'-DCY_PSOC_CREATOR_USED=1',
+	'-DCY8C6347BZI_BLD53',
 	'-Wall',
 	'-ffunction-sections',
 	'-ffat-lto-objects',
-	'-O0',
+	'-Og',
 # Creator_PostBuild_CompilerOptions_End - automatic insert of compiler options by Creator_PostBuild. Do not edit above this line
 ]
 
 linker_args     = [
 # Creator_PostBuild_LinkerOptions_Start - automatic insert of linker options by Creator_PostBuild. Do not edit below this line
-	'-mcpu=cortex-m0',
+	'-mcpu=cortex-m4',
+	'-mfloat-abi=softfp',
+	'-mfpu=fpv4-sp-d16',
 	'-mthumb',
-	'-LGenerated_Source/PSoC4',
-	'-TGenerated_Source/PSoC4/cm0gcc.ld',
+	'-LGenerated_Source/PSoC6',
+	'-Tcy8c6xx7_cm4_dual.ld',
 	'-specs=nano.specs',
 	'-Wl,--gc-sections',
 	'-g',
 	'-ffunction-sections',
-	'-O0',
+	'-Og',
 	'-ffat-lto-objects',
 # Creator_PostBuild_LinkerOptions_End - automatic insert of linker options by Creator_PostBuild. Do not edit above this line
 ]
@@ -110,7 +119,31 @@ include_dirs       = [
 	'source',
 # OTX_Extension_HeaderFiles_End - automatic insert of source files by the OTX VSCode extension. Do not edit above this line
 # Creator_PostBuild_IncludeFolders_Start - automatic insert of include header folders by Creator_PostBuild. Do not edit below this line
-	'Debug/Generated_Source/PSoC4',
+	'Debug/Generated_Source/PSoC6',
+	'Debug/Generated_Source/PSoC6/pdl/cmsis/include',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/efuse',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/flash',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/gpio',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/ipc',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/lvd',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/profile',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/prot',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/sysanalog',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/sysclk',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/sysint',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/syslib',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/syspm',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/systick',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/trigmux',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/wdt',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/device',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/sar',
+	'Debug/Generated_Source/PSoC6/pdl/middleware/ble',
+	'Debug/Generated_Source/PSoC6/pdl/devices/psoc6/include',
+	'Debug/Generated_Source/PSoC6/pdl/devices/psoc6/include/ip',
+	'Debug/',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral',
+	'Debug/Generated_Source/PSoC6/pdl/middleware',
 # Creator_PostBuild_IncludeFolders_End - automatic insert of include header folders by Creator_PostBuild. Do not edit above this line
 ]
 
@@ -122,41 +155,39 @@ sourcefiles       = [
 	'source/main.c',
 # OTX_Extension_SourceFiles_End - automatic insert of source files by the OTX VSCode extension. Do not edit above this line
 # Creator_PostBuild_SourceFiles_Start - automatic insert of source files by Creator_PostBuild. Do not edit below this line
-	'Debug/Generated_Source/PSoC4/cyfitter_cfg.c',
-	'Debug/Generated_Source/PSoC4/cymetadata.c',
-	'Debug/Generated_Source/PSoC4/BLE.c',
-	'Debug/Generated_Source/PSoC4/BLE_gatt.c',
-	'Debug/Generated_Source/PSoC4/BLE_eventHandler.c',
-	'Debug/Generated_Source/PSoC4/BLE_HAL_INT.c',
-	'Debug/Generated_Source/PSoC4/BLE_HAL_PVT.c',
-	'Debug/Generated_Source/PSoC4/BLE_custom.c',
-	'Debug/Generated_Source/PSoC4/Conn_LED.c',
-	'Debug/Generated_Source/PSoC4/Conn_LED_PM.c',
-	'Debug/Generated_Source/PSoC4/UART.c',
-	'Debug/Generated_Source/PSoC4/UART_SPI_UART.c',
-	'Debug/Generated_Source/PSoC4/UART_SPI_UART_INT.c',
-	'Debug/Generated_Source/PSoC4/UART_PM.c',
-	'Debug/Generated_Source/PSoC4/UART_UART.c',
-	'Debug/Generated_Source/PSoC4/UART_BOOT.c',
-	'Debug/Generated_Source/PSoC4/UART_UART_BOOT.c',
-	'Debug/Generated_Source/PSoC4/Adv_LED.c',
-	'Debug/Generated_Source/PSoC4/Adv_LED_PM.c',
-	'Debug/Generated_Source/PSoC4/BLE_bless_isr.c',
-	'Debug/Generated_Source/PSoC4/UART_SCBCLK.c',
-	'Debug/Generated_Source/PSoC4/UART_tx.c',
-	'Debug/Generated_Source/PSoC4/UART_tx_PM.c',
-	'Debug/Generated_Source/PSoC4/UART_SCB_IRQ.c',
-	'Debug/Generated_Source/PSoC4/UART_rx.c',
-	'Debug/Generated_Source/PSoC4/UART_rx_PM.c',
-	'Debug/Generated_Source/PSoC4/Cm0Start.c',
-	'Debug/Generated_Source/PSoC4/CyFlash.c',
-	'Debug/Generated_Source/PSoC4/CyLib.c',
-	'Debug/Generated_Source/PSoC4/cyPm.c',
-	'Debug/Generated_Source/PSoC4/cyutils.c',
-	'Debug/Generated_Source/PSoC4/CyDMA.c',
-	'Debug/Generated_Source/PSoC4/CyLFClk.c',
-	'Debug/Generated_Source/PSoC4/cy_em_eeprom.c',
-	'Debug/Generated_Source/PSoC4/CyBootAsmGnu.s',
+	'Debug/Generated_Source/PSoC6/cyfitter_sysint_cfg.c',
+	'Debug/Generated_Source/PSoC6/cymetadata.c',
+	'Debug/Generated_Source/PSoC6/I2C_1.c',
+	'Debug/Generated_Source/PSoC6/I2C_1_BOOT.c',
+	'Debug/Generated_Source/PSoC6/I2C_1_INT.c',
+	'Debug/Generated_Source/PSoC6/I2C_1_PM.c',
+	'Debug/Generated_Source/PSoC6/I2C_1_SLAVE.c',
+	'Debug/Generated_Source/PSoC6/I2C_1_MASTER.c',
+	'Debug/Generated_Source/PSoC6/ADC.c',
+	'Debug/Generated_Source/PSoC6/ADC_INT.c',
+	'Debug/Generated_Source/PSoC6/ADC_INIT.c',
+	'Debug/Generated_Source/PSoC6/ADC_PM.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/efuse/cy_efuse.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/flash/cy_flash.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/gpio/cy_gpio.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/ipc/cy_ipc_drv.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/ipc/cy_ipc_sema.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/ipc/cy_ipc_pipe.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/lvd/cy_lvd.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/profile/cy_profile.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/prot/cy_prot.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/sysanalog/cy_sysanalog.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/sysclk/cy_sysclk.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/sysint/cy_sysint.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/syslib/cy_syslib.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/syslib/gcc/cy_syslib_gcc.S',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/syspm/cy_syspm.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/systick/cy_systick.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/trigmux/cy_trigmux.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/wdt/cy_wdt.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/device/cy_device.c',
+	'Debug/Generated_Source/PSoC6/pdl/drivers/peripheral/sar/cy_sar.c',
+	'Debug/Generated_Source/PSoC6/pdl/middleware/ble/cy_ble_clk.c',
 # Creator_PostBuild_SourceFiles_End - automatic insert of source files by Creator_PostBuild. Do not edit above this line
 ]
 
@@ -169,7 +200,6 @@ cc = meson.get_compiler('c')
 #link_deps = declare_dependency( dependencies : cc.find_library('library', dirs : ['directory/libdir']) )
 link_deps = [
 # Creator_PostBuild_LibSources_Start - automatic insert of include source files by Creator_PostBuild. Do not edit below this line
-	declare_dependency( dependencies : cc.find_library('gccCyBLEStack_BLE_SOC_PERIPHERAL', dirs : [CREATOR_DIR + '/./Export/ARM_GCC_Generic/BLE_v3_66']) ),
 # Creator_PostBuild_LibSources_End - automatic insert of include source files by Creator_PostBuild. Do not edit above this line
 ]
 
