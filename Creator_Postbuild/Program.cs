@@ -59,8 +59,9 @@ namespace Creator_PostBuild
                     "Run this tool the PSoC Creator project directory\r\n" +
                     "OPTIONS:\r\n" +
                     "-v2        : mandatory, v2 for this version. Returns error if v2 not matches.\r\n" +
-                    "-targetOTX : parses the cyfitter_cfg.c to cyfitter_otx_cfg.c\r\n" +
-                    "            and removes the linker file from the linker options.\r\n" +
+                    "-targetOTX : parses cyfitter_cfg.c to cyfitter_otx_cfg.c\r\n" +
+                    "             removes the linker file from the linker options.\r\n" +
+                    "             parses cy_ble_clk.h to remove SFLASH->RADIO_LDO_TRIMS.\r\n" +
                     "-keepMain  : keep the references to the main project sourcefiles."
                  );
                 return;
@@ -79,7 +80,7 @@ namespace Creator_PostBuild
             if (!File.Exists(fileExportIDE)) fileExportIDE = Environment.CurrentDirectory + @"\Export\PSoCCreatorExportIDECortexM4.xml";
             string fileCyFitter = Environment.CurrentDirectory + @"\Generated_Source\PSoC6\cyfitter_cfg.c";
             string fileCyFitterNew = Environment.CurrentDirectory + @"\Generated_Source\PSoC6\cyfitter_cfg_otx.c";
-            // string filePlatformDebug = Environment.CurrentDirectory + @"\platform_debug.mk";
+            string fileCyBLEclk = Environment.CurrentDirectory + @"\Generated_Source\PSoC6\pdl\middleware\ble\cy_ble_clk.c";
             string fileMesonBuild = Environment.CurrentDirectory + @"\..\meson.build";
 
             Console.WriteLine("\r\nTarget file: " + fileExportIDE);
@@ -102,6 +103,12 @@ namespace Creator_PostBuild
                 if (parseCyFitterResult.message != "") Console.WriteLine(parseCyFitterResult.message);
                 if (parseCyFitterResult.writeOutput) File.WriteAllLines(fileCyFitterNew, parseCyFitterResult.output as List<string>);
                 if (parseCyFitterResult.error != 0) Environment.Exit(parseCyFitterResult.error);
+
+                Console.WriteLine("\r\nTarget file: " + fileCyBLEclk);
+                parseResult_c parseCyBLEclkResult = parseCyBLEclk(fileCyBLEclk);
+                if (parseCyBLEclkResult.message != "") Console.WriteLine(parseCyBLEclkResult.message);
+                if (parseCyBLEclkResult.writeOutput) File.WriteAllLines(fileCyBLEclk, parseCyBLEclkResult.output as List<string>);
+                if (parseCyBLEclkResult.error != 0) Environment.Exit(parseCyBLEclkResult.error);
             }
 
             Console.WriteLine("\r\nTarget file: " + fileMesonBuild);
@@ -213,7 +220,7 @@ namespace Creator_PostBuild
                 foreach (var xmlSources in xmlStrictFolders.Skip(keepMain ? 0 : 1))
                 {
                     sourceFiles.AddRange(xmlSources.Files.File.Where(x => x.BuildType == "BUILD" && x.Toolchain == ""));
-                    sourceFiles.AddRange(xmlSources.Files.File.Where(x => x.BuildType == "BUILD" && x.Toolchain == "ARM GCC Generic"));
+                    sourceFiles.AddRange(xmlSources.Files.File.Where(x => x.BuildType == "BUILD" && x.Toolchain.Contains("ARM GCC Generic")));
                 }
                 foreach (var fileObj in sourceFiles)
                 {
@@ -370,6 +377,28 @@ namespace Creator_PostBuild
 
             return parseResult;
         }
+
+        private static parseResult_c parseCyBLEclk(string cFileName)
+        {
+            if (!File.Exists(cFileName)) return new parseResult_c("Target file not found.", 0, false);
+            string[] cFile = File.ReadAllLines(cFileName);
+            List<string> parseOut = new List<string>();
+            parseResult_c parseResult = new parseResult_c(parseOut, "Done!", 0, true);
+
+            for (int cnt = 0; cnt < cFile.Length; cnt++)
+            {
+                string cline = cFile[cnt];
+                // if (cline.Contains("Onethinx")) return new parseResult_c("File already parsed, no work to be done :-)", 0, false);
+                if (cline.Contains(@"SFLASH->RADIO_LDO_TRIMS != 0U"))
+                {
+                    Console.WriteLine("Found SFLASH->RADIO_LDO_TRIMS at line " + cnt + ", changing code...");
+                    cline = cline.Replace(@"SFLASH->RADIO_LDO_TRIMS != 0U", "false") + "        // Changed from (SFLASH->RADIO_LDO_TRIMS != 0U) to (false) by Creator PostBuild for OTX-18";
+                }
+                parseOut.Add(cline);
+            }
+            return parseResult;
+        }
+
 
         //private static parseResult_c parsePlatformDebugMake(string cFileName)
         //{
