@@ -1,3 +1,0 @@
-Generated_Source\PSoC6\pdl\middleware\ble\lib\cy_ble_stack_gcc_host_soft_cm4.a
-Generated_Source\PSoC6\pdl\middleware\ble\lib\cy_ble_stack_gcc_controller_soft_cm4.a
-Generated_Source\PSoC6\pdl\middleware\ble\lib\cy_ble_stack_gcc_manager_soft_cm4.a

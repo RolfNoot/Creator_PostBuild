@@ -1,0 +1,110 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build Debug",
+            "command": "csc",
+            "type": "shell",
+            "args": [
+                "-debug",
+                "/win32icon:command.ico",
+                "cyideexport.cs",
+                "Program.cs",
+                "/out:${workspaceFolderBasename}.exe"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "silent"
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "Build Release",
+            "command": "csc",
+            "type": "shell",
+            "args": [
+                "-optimize",
+                "/win32icon:command.ico",
+                "cyideexport.cs",
+                "Program.cs",
+                "/out:${workspaceFolderBasename}.exe"
+            ],
+            "group": "build",
+            "presentation": {
+                "reveal": "silent"
+            },
+            "problemMatcher": "$msCompile"
+        },
+        // {
+        //     "label": "exeToBinary MAC_slow_old",
+        //     "command": "mkbundle",
+        //     "type": "shell",
+        //     "args": [
+        //         "--nodeps",
+        //         "--i18n",
+        //         "none",
+        //        // "--static",
+        //     //    "--keeptemp",
+        //        // "-c",
+        //         "-z",
+        //         "-L",
+        //         "/Library/Frameworks/Mono.framework/Versions/Current/lib/mono/4.7.2",
+        //         "${workspaceFolderBasename}.exe",
+        //         "-o",
+        //         "${workspaceFolderBasename}_mac",
+        //         "-v"
+        //     ],
+        //     "options": {  "env": { "PKG_CONFIG_PATH": "/Library/Frameworks/Mono.framework/Versions/current/lib/pkgconfig" } }
+        // },
+        {
+            "label": "exeToBinary MAC",
+            "command": "mkbundle",
+            "type": "shell",
+            "args": [
+                "--nodeps",
+                //"--deps",
+                "--i18n",
+                "none",
+                "--cross",
+                "mono-4.8.0-osx-10.7-x64",      // for a specific target, check mkbundle --list-targets, to install: mkbundle --fetch-target mono-4.8.0-osx-10.7-x64
+               // "-z",
+               // "-L",
+               // "/Library/Frameworks/Mono.framework/Versions/Current/lib/mono/4.5",
+                "${workspaceFolderBasename}.exe",
+                "-o",
+                "${workspaceFolderBasename}_mac",
+                "-v"
+            ],
+            "options": {  "env": { "PKG_CONFIG_PATH": "/Library/Frameworks/Mono.framework/Versions/current/lib/pkgconfig" } }
+        },
+        {
+            "label": "exeToBinary Linux",
+            "command": "mkbundle",
+            "type": "shell",
+            "args": [
+                //"--static",
+                "--nodeps",
+                //"--deps",
+                "--i18n",
+                "none",
+                "--cross",
+                
+              // "mono-5.8.0-ubuntu-16.04-x64",
+              //  "mono-4.8.0-ubuntu-12.04-x64",
+              //"mono-4.8.0-ubuntu-16.04-x64",
+              "mono-4.8.0-debian-8-x64",
+                
+               // "-z",
+               // "-L",
+               // "/Library/Frameworks/Mono.framework/Versions/Current/lib/mono/4.5",
+                "${workspaceFolderBasename}.exe",
+                "-o",
+                "${workspaceFolderBasename}_linux",
+                "-v"
+            ],
+            "options": {  "env": { "PKG_CONFIG_PATH": "/Library/Frameworks/Mono.framework/Versions/current/lib/pkgconfig" } }
+        }
+    ]
+}

@@ -1,0 +1,6 @@
+{
+    "omnisharp.useModernNet": false,
+    "dotnet.preferCSharpExtension": true,
+    "otx-maestro.alwaysActivate": "true",
+
+}
