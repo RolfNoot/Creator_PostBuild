@@ -5,34 +5,168 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Serialization;
+using System.Net;
+using System.Globalization;
 
 namespace Creator_PostBuild
 {
-    class Program
+    class parseResult_c
     {
-        const string version = "2.13";
-        static string absLinkPath = "";
-
-        class parseResult_c
+        public object output;
+        public string message;
+        public int error;
+        public bool writeOutput;
+        public parseResult_c(object output, string message, int error, bool writeOutput)
         {
-            public object output;
-            public string message;
-            public int error;
-            public bool writeOutput;
-            public parseResult_c(object output, string message, int error, bool writeOutput)
+            this.output = output;
+            this.message = message;
+            this.error = error;
+            this.writeOutput = writeOutput;
+        }
+        public parseResult_c(string message, int error, bool writeOutput)
+        {
+            this.message = message;
+            this.error = error;
+            this.writeOutput = writeOutput;
+        }
+    }
+
+    public class xmlResult
+    {
+        public string fromFile = "";
+        public string devicePart = "";
+        public string assemblerOptions = "";
+        public string compilerOptions = "";
+        public string linkerOptions = "";
+        public string linkerFile = "";
+        public string prebuild = "";
+        public string postbuild = "";
+        public string SVDfile = "";
+        public List<string> sourceFiles = new List<string>();
+        public List<string> includeFolders = new List<string>();
+        public List<string> libraryFiles = new List<string>();
+    }
+
+    public enum buildMethod
+    {
+        meson,
+        cmake
+    }
+
+    public static class ListExtensions
+    {
+        public static void AddOption(this List<string> parseOut, string option, buildMethod method)
+        {
+            switch (method)
             {
-                this.output = output;
-                this.message = message;
-                this.error = error;
-                this.writeOutput = writeOutput;
-            }
-            public parseResult_c(string message, int error, bool writeOutput)
-            {
-                this.message = message;
-                this.error = error;
-                this.writeOutput = writeOutput;
+                case buildMethod.meson:
+                    parseOut.Add("\t'" + option + "',");
+                    break;
+                case buildMethod.cmake:
+                    parseOut.Add("\t\"" + option + "\"");
+                    break;
+                default:
+                    parseOut.Add(option);
+                    break;
             }
         }
+        public static void AddPath(this List<string> parseOut, string path, buildMethod method)
+        {
+            switch (method)
+            {
+                case buildMethod.meson:
+                    parseOut.Add("\t'" + path + "',");
+                    break;
+                case buildMethod.cmake:
+                    parseOut.Add("\t" + path + "");
+                    break;
+                default:
+                    parseOut.Add(path);
+                    break;
+            }
+        }
+        public static void AddLibrary(this List<string> parseOut, string libFile, buildMethod method)
+        {
+            string libName = Path.GetFileNameWithoutExtension(libFile);
+            string libFolder = Path.GetDirectoryName(libFile).Replace('\\', '/');
+            libFile = libFile.Replace('\\', '/');
+            switch (method)
+            {
+                case buildMethod.meson:
+                    parseOut.Add(String.Format("\tdeclare_dependency( dependencies : cc.find_library('{0}', dirs : [CREATOR_DIR + '/{1}']) ),", libName, libFolder));
+                    break;
+                case buildMethod.cmake:
+                    parseOut.Add($"add_library({libName} STATIC IMPORTED)");
+                    parseOut.Add($"set_target_properties({libName} PROPERTIES IMPORTED_LOCATION \"${{CREATOR_DIR}}/{libFile}\")");
+                    parseOut.Add($"list(APPEND libnames {libName})");
+                    break;
+                default:
+                    parseOut.Add(libFile);
+                    break;
+            }
+        }
+        public static void AddVariable(this List<string> parseOut, string variableName, string variableValue, buildMethod method)
+        {
+            switch (method)
+            {
+                case buildMethod.meson:
+                    parseOut.Add($"{variableName} = '{variableValue}'");
+                    break;
+                case buildMethod.cmake:
+                    parseOut.Add($"set({variableName} \"{variableValue}\")");
+                    break;
+                default:
+                    parseOut.Add($"{variableName} = '{variableValue}'");
+                    break;
+            }
+        }
+    }
+
+    public class buildFile_t
+    {
+        public string fileName;
+        public buildMethod method;
+    }
+
+    public static class XmlResultExtensions
+    {
+        public static void ProcessMatchingXmlResults(
+            this IEnumerable<xmlResult> xmlResults,
+            string cline, string defaultID,
+            Func<xmlResult, IEnumerable<string>> lineSelector,
+            Action<string> processLine)
+        {
+            // Extract ID from cline
+            Match match = Regex.Match(cline, @"\(ID:(.*?)\)");
+            string ID = match.Success ? match.Groups[1].Value : defaultID;
+
+            foreach (var xmlResult in xmlResults.Where(x => x.fromFile == ID))
+            {
+                foreach (var line in lineSelector(xmlResult))
+                {
+                    processLine(line);
+                }
+            }
+        }
+
+        public static xmlResult GetMatchingXmlResults(
+            this IEnumerable<xmlResult> xmlResults,
+            string cline,
+            string defaultID)
+        {
+            // Extract ID from cline
+            Match match = Regex.Match(cline, @"\(ID:(.*?)\)");
+            string ID = match.Success ? match.Groups[1].Value : defaultID;
+
+            // Find and return the matching xmlResult, or null if no match is found
+            return xmlResults.SingleOrDefault(x => x.fromFile == ID);
+        }
+    }
+
+    class Program
+    {
+        const string version = "2.20";
+        static string absLinkPath = "";
 
         static string NormalizePath(string path)
         {
@@ -44,6 +178,13 @@ namespace Creator_PostBuild
             path = (path == ".") ? "" : path;
             path = path.Replace('\\', '/');
             if (!refList.Contains(path)) refList.Add(path);
+        }
+
+        public struct options
+        {
+            public static bool targetOTX = false;
+            public static bool keepMain = false;
+            public static bool dualCore = false;
         }
 
         static void Main(string[] args)
@@ -86,12 +227,12 @@ namespace Creator_PostBuild
                 Console.WriteLine("Error, arguments not met!\r\nAdapt buildfile for use with this version and fix arguments.");
                 Environment.Exit(1);
             }
-            bool targetOTX = false;
-            bool keepMain = false;
+
+
             foreach (var arg in args)
             {
-                if (arg.Contains("-targetOTX")) targetOTX = true;
-                if (arg.Contains("-keepMain")) keepMain = true;
+                if (arg.Contains("-targetOTX")) options.targetOTX = true;
+                if (arg.Contains("-keepMain")) options.keepMain = true;
                 if (arg.Contains("-absLinkPath="))
                 {
                     absLinkPath = arg.Replace("-absLinkPath=", "");
@@ -102,63 +243,92 @@ namespace Creator_PostBuild
                 }
             }
 
-            string fileExportIDE = NormalizePath(Environment.CurrentDirectory + @"\Export\PSoCCreatorExportIDE.xml");
-            if (!File.Exists(fileExportIDE)) fileExportIDE = NormalizePath(Environment.CurrentDirectory + @"\Export\PSoCCreatorExportIDECortexM4.xml");
+            List<buildFile_t> buildFiles = new List<buildFile_t>();
+            string fileMesonBuild = NormalizePath(Environment.CurrentDirectory + @"\..\meson.build");
+            string fileCmakeBuild = NormalizePath(Environment.CurrentDirectory + @"\..\CMakeLists.txt");
+            if (File.Exists(fileMesonBuild)) buildFiles.Add(new buildFile_t() { fileName = fileMesonBuild, method = buildMethod.meson });
+            if (File.Exists(fileCmakeBuild)) buildFiles.Add(new buildFile_t() { fileName = fileCmakeBuild, method = buildMethod.cmake });
+
+            // string fileMesonBuildM0 = NormalizePath(Environment.CurrentDirectory + @"\..\meson_cm0.build");
+            //  string fileMesonBuildM4 = NormalizePath(Environment.CurrentDirectory + @"\..\meson_cm4.build");
+            //   options.dualCore = File.Exists(fileMesonBuildM0) && File.Exists(fileMesonBuildM4);
+
+            string fileExportIDEbase = NormalizePath(Environment.CurrentDirectory + @"\Export");
+            //if (!File.Exists(fileExportIDE)) fileExportIDE = NormalizePath(Environment.CurrentDirectory + @"\Export\PSoCCreatorExportIDECortexM4.xml");
+
+            // Get all XML files in the directory
+            string[] exportIDEfiles = Directory.GetFiles(fileExportIDEbase, "PSoCCreatorExportIDE*.xml", SearchOption.AllDirectories);
+
+
             string fileCyFitter = NormalizePath(Environment.CurrentDirectory + @"\Generated_Source\PSoC6\cyfitter_cfg.c");
             string fileCyFitterNew = NormalizePath(Environment.CurrentDirectory + @"\Generated_Source\PSoC6\cyfitter_cfg_otx.c");
             string fileCyBLEclk = NormalizePath(Environment.CurrentDirectory + @"\Generated_Source\PSoC6\pdl\middleware\ble\cy_ble_clk.c");
-            string fileMesonBuild = NormalizePath(Environment.CurrentDirectory + @"\..\meson.build");
 
-            Console.WriteLine("\r\nTarget file: " + fileExportIDE);
-            parseResult_c parseXMLfileResult = parseXMLfile(fileExportIDE, keepMain);
-            xmlResult xmlOut = parseXMLfileResult.output as xmlResult;
-            if (parseXMLfileResult.message != "") Console.WriteLine(parseXMLfileResult.message);
-            if (parseXMLfileResult.error == 0)
-                if (parseXMLfileResult.writeOutput) MergeIncludeFoldersFromOptions(xmlOut, xmlOut.compilerOptions);
-            {
-                File.WriteAllLines("sourceFiles.txt", xmlOut.sourceFiles);
-                File.WriteAllLines("headerIncludeDirs.txt", xmlOut.includeFolders);
-                File.WriteAllLines("librarySources.txt", xmlOut.libraryFiles);
-            }
-            if (parseXMLfileResult.error != 0) Environment.Exit(parseXMLfileResult.error);
 
-            if (targetOTX)      // Parse of CyFitter File into new file for OTX if needed
-            {
-                Console.WriteLine("\r\nTarget file: " + fileCyFitter);
-                parseResult_c parseCyFitterResult = parseCyFitterCfg(fileCyFitter, xmlOut);
-                if (parseCyFitterResult.message != "") Console.WriteLine(parseCyFitterResult.message);
-                if (parseCyFitterResult.writeOutput) File.WriteAllLines(fileCyFitterNew, parseCyFitterResult.output as List<string>);
-                if (parseCyFitterResult.error != 0) Environment.Exit(parseCyFitterResult.error);
-
-                Console.WriteLine("\r\nTarget file: " + fileCyBLEclk);
-                parseResult_c parseCyBLEclkResult = parseCyBLEclk(fileCyBLEclk);
-                if (parseCyBLEclkResult.message != "") Console.WriteLine(parseCyBLEclkResult.message);
-                if (parseCyBLEclkResult.writeOutput) File.WriteAllLines(fileCyBLEclk, parseCyBLEclkResult.output as List<string>);
-                if (parseCyBLEclkResult.error != 0) Environment.Exit(parseCyBLEclkResult.error);
-            }
-
-            Console.WriteLine("\r\nTarget file: " + fileMesonBuild);
-            parseResult_c parseMesonBuildResult = parseMesonBuild(fileMesonBuild, xmlOut, targetOTX);
-            if (parseMesonBuildResult.message != "") Console.WriteLine(parseMesonBuildResult.message);
-            if (parseMesonBuildResult.writeOutput) File.WriteAllLines(fileMesonBuild, parseMesonBuildResult.output as List<string>);
-            if (parseMesonBuildResult.error != 0) Environment.Exit(parseMesonBuildResult.error);
-
+            parseFiles(exportIDEfiles, fileCyFitter, fileCyFitterNew, fileCyBLEclk, buildFiles);
         }
 
-        class xmlResult
+        private static void parseFiles(string[] exportIDEfiles, string fileCyFitter, string fileCyFitterNew, string fileCyBLEclk, List<buildFile_t> buildFiles)
         {
-            public string devicePart = "";
-            public string assemblerOptions = "";
-            public string compilerOptions = "";
-            public string linkerOptions = "";
-            public string linkerFile = "";
-            public string prebuild = "";
-            public string postbuild = "";
-            public string SVDfile = "";
-            public List<string> sourceFiles = new List<string>();
-            public List<string> includeFolders = new List<string>();
-            public List<string> libraryFiles = new List<string>();
+            List<xmlResult> xmlOuts = new List<xmlResult>();
+            foreach (string fileExportIDE in exportIDEfiles)
+            {
+                Console.WriteLine("\r\nTarget file: " + fileExportIDE);
+                parseResult_c parseXMLfileResult = parseXMLfile(fileExportIDE, options.keepMain);
+                xmlResult xmlOut = parseXMLfileResult.output as xmlResult;
+                xmlOut.fromFile = Path.GetFileNameWithoutExtension(fileExportIDE).Replace("PSoCCreatorExportIDE", "");
+
+                if (parseXMLfileResult.message != "") Console.WriteLine(parseXMLfileResult.message);
+                if (parseXMLfileResult.error != 0) Environment.Exit(parseXMLfileResult.error);
+                MergeIncludeFoldersFromOptions(xmlOut, xmlOut.compilerOptions);                             // add folders specified by the compiler options (-I)
+                if (!options.targetOTX || xmlOut.fromFile == "CortexM4")                                    // for targetOTX only add CortexM4
+                    xmlOuts.Add(xmlOut);
+
+                //{
+                //    File.WriteAllLines("sourceFiles.txt", xmlOut.sourceFiles);
+                //    File.WriteAllLines("headerIncludeDirs.txt", xmlOut.includeFolders);
+                //    File.WriteAllLines("librarySources.txt", xmlOut.libraryFiles);
+                //}
+
+            }
+            if (xmlOuts.Count < 1)
+            {
+                Console.WriteLine("Error, can not find Export XML file!\r\nPlease set Project >> Export to IDE >> Makefile");
+                Environment.Exit(1);
+            }
+
+            if (options.targetOTX)      // Parse of CyFitter File into new file for OTX if needed
+            {
+                if (fileCyFitter != "")
+                {
+                    Console.WriteLine("\r\nTarget file: " + fileCyFitter);
+                    parseResult_c parseCyFitterResult = parseCyFitterCfg(fileCyFitter, xmlOuts[0]);
+                    if (parseCyFitterResult.message != "") Console.WriteLine(parseCyFitterResult.message);
+                    if (parseCyFitterResult.writeOutput) File.WriteAllLines(fileCyFitterNew, parseCyFitterResult.output as List<string>);
+                    if (parseCyFitterResult.error != 0) Environment.Exit(parseCyFitterResult.error);
+                }
+
+                if (fileCyBLEclk != "")
+                {
+                    Console.WriteLine("\r\nTarget file: " + fileCyBLEclk);
+                    parseResult_c parseCyBLEclkResult = parseCyBLEclk(fileCyBLEclk);
+                    if (parseCyBLEclkResult.message != "") Console.WriteLine(parseCyBLEclkResult.message);
+                    if (parseCyBLEclkResult.writeOutput) File.WriteAllLines(fileCyBLEclk, parseCyBLEclkResult.output as List<string>);
+                    if (parseCyBLEclkResult.error != 0) Environment.Exit(parseCyBLEclkResult.error);
+                }
+            }
+
+            foreach (buildFile_t buildFile in buildFiles)
+            {
+                Console.WriteLine("\r\nTarget file: " + buildFile.fileName);
+                parseResult_c parseMesonBuildResult = parseBuildFile(buildFile.fileName, xmlOuts, buildFile.method);
+                if (parseMesonBuildResult.message != "") Console.WriteLine(parseMesonBuildResult.message);
+                if (parseMesonBuildResult.writeOutput) File.WriteAllLines(buildFile.fileName, parseMesonBuildResult.output as List<string>);
+                if (parseMesonBuildResult.error != 0) Environment.Exit(parseMesonBuildResult.error);
+            }
+
         }
+
         private static parseResult_c parseXMLfile(string filenname, bool keepMain)
         {
             if (!File.Exists(filenname)) return new parseResult_c("Error, can not find Export XML file!\r\nPlease set Project >> Export to IDE >> Makefile", 1, false);
@@ -457,15 +627,23 @@ namespace Creator_PostBuild
         //    return parseResult;
         //}
 
-        private static parseResult_c parseMesonBuild(string cFileName, xmlResult xmlOut, bool targetOTX)
+        private static parseResult_c parseBuildFile(string cFileName, List<xmlResult> xmlOuts, buildMethod method)
         {
             if (!File.Exists(cFileName)) return new parseResult_c("Not found. OK", 0, false);
+            string fileName = Path.GetFileName(cFileName);
             string[] cFile = File.ReadAllLines(cFileName);
             List<string> parseOut = new List<string>();
             parseResult_c parseResult = new parseResult_c(parseOut, "Done!", 0, true);
             string currentDirName = new DirectoryInfo(Environment.CurrentDirectory).Name + "/";
             bool copying = true; int linesStripped = 0;
             string minimumVersion = "";
+            string defaultID = "";
+            if (!xmlOuts.Any(x => x.fromFile == defaultID))
+            {
+                defaultID = "CortexM4";     // For PSoC6 set CortexM4 as default
+                if (!xmlOuts.Any(x => x.fromFile == defaultID))
+                    return new parseResult_c("Error: XML " + defaultID + " not found!\r\nPlease enable 'Project >> Export to IDE >> Makefile' setting", 1, false);
+            }
             for (int cnt = 0; cnt < cFile.Length; cnt++)
             {
                 string cline = cFile[cnt];
@@ -482,120 +660,132 @@ namespace Creator_PostBuild
                 if (linesStripped > 0 && --linesStripped == 0) copying = true;
                 if (cline.Contains("Creator_PostBuild_SourceFiles_Start"))
                 {
-                    foreach (string line in xmlOut.sourceFiles)
+                    xmlOuts.ProcessMatchingXmlResults(cline, defaultID, x => x.sourceFiles, line =>
                     {
                         string file = currentDirName + line.Replace('\\', '/');
-                        parseOut.Add("\t'" + file + "',");
-                    }
+                        //parseOut.Add("\t'" + file + "',")
+                        parseOut.AddPath(file, method);
+                    });
                     copying = false;
                 }
                 else if (cline.Contains("Creator_PostBuild_IncludeFolders_Start"))
                 {
-                    foreach (string line in xmlOut.includeFolders)
+                    xmlOuts.ProcessMatchingXmlResults(cline, defaultID, x => x.includeFolders, line =>
                     {
                         string folder = currentDirName + ((line == ".") ? "" : line.Replace('\\', '/'));
-                        parseOut.Add("\t'" + folder + "',");
+                        parseOut.AddPath(folder, method);
                         //parseOut.Add("\t'" + line + "',");
-                    }
+                    });
                     copying = false;
                 }
                 else if (cline.Contains("Creator_PostBuild_LibSources_Start"))
                 {
-                    foreach (string line in xmlOut.libraryFiles)
+                    xmlOuts.ProcessMatchingXmlResults(cline, defaultID, x => x.libraryFiles, line =>
                     {
                         // parseOut.Add("\t'" + currentDirName + ((line == ".") ? "" : line) + "',");
                         string libFile = NormalizePath(line);
                         if (!File.Exists(libFile))
                         {
                             libFile = Path.GetFileName(libFile);       // File may exist in main folder
-                            if (!File.Exists(libFile))
-                                return new parseResult_c("Error: Library " + libFile + " not found!\r\nPlease enable 'Project >> Export to IDE >> Makefile' setting", 1, false);
+                            if (!File.Exists(libFile)) return;
+                               //  return new parseResult_c("Error: Library " + libFile + " not found!\r\nPlease enable 'Project >> Export to IDE >> Makefile' setting", 1, false);
                         }
-                        string lib = Path.GetFileNameWithoutExtension(libFile);
-                        string libFolder = Path.GetDirectoryName(libFile).Replace('\\', '/');
-                        parseOut.Add(String.Format("\tdeclare_dependency( dependencies : cc.find_library('{0}', dirs : [CREATOR_DIR + '/{1}']) ),", lib, libFolder));
-                    }
+                       // string lib = Path.GetFileNameWithoutExtension(libFile);
+                       // string libFolder = Path.GetDirectoryName(libFile).Replace('\\', '/');
+                        parseOut.AddLibrary(libFile, method);
+                    });
                     copying = false;
                 }
                 else if (cline.Contains("Creator_PostBuild_AssemblerOptions_Start"))
                 {
-                    foreach (string line in fixAndStripOptions(xmlOut.assemblerOptions, true))
+                    //foreach (string line in fixAndStripOptions(xmlOut.assemblerOptions, true))
+                    xmlOuts.ProcessMatchingXmlResults(cline, defaultID, x => fixAndStripOptions(x.assemblerOptions, true), line =>
                     {
-                        parseOut.Add("\t'" + line + "',");
-                    }
+                        parseOut.AddOption(line, method);
+                        //parseOut.Add("\t'" + line + "',");
+                    });
                     copying = false;
                 }
                 else if (cline.Contains("Creator_PostBuild_CompilerOptions_Start"))
                 {
-                    foreach (string line in fixAndStripOptions(xmlOut.compilerOptions, true))
+                    //foreach (string line in fixAndStripOptions(xmlOut.compilerOptions, true))
+                    xmlOuts.ProcessMatchingXmlResults(cline, defaultID, x => fixAndStripOptions(x.compilerOptions, true), line =>
                     {
-                        parseOut.Add("\t'" + line + "',");
-                    }
+                        //parseOut.Add("\t'" + line + "',");
+                        parseOut.AddOption(line, method);
+                    });
                     copying = false;
                 }
                 else if (cline.Contains("Creator_PostBuild_LinkerOptions_Start"))
                 {
-                    foreach (string line in fixAndStripOptions(xmlOut.linkerOptions, true))
+                    //foreach (string line in fixAndStripOptions(xmlOut.linkerOptions, true))
+                    xmlOuts.ProcessMatchingXmlResults(cline, defaultID, x => fixAndStripOptions(x.linkerOptions, true), line =>
                     {
                         //if (!targetOTX || (!line.StartsWith("-L") && !line.StartsWith("-T")))      // if OTX found, do not add -L and -T options
                         //    parseOut.Add("\t'" + line + "',");
                         if (line.StartsWith("-L") || line.StartsWith("-T"))     // check for folder references
                         {
-                            if (!targetOTX) parseOut.Add("\t'" + line.Insert(2, absLinkPath).Replace('\\', '/') + "',");       // Reformat and add when not using OTX target
+                            if (!options.targetOTX) //parseOut.Add("\t'" + line.Insert(2, absLinkPath).Replace('\\', '/') + "',");       // Reformat and add when not using OTX target
+                                parseOut.AddOption(line.Insert(2, absLinkPath).Replace('\\', '/'), method);       // Reformat and add when not using OTX target
                         }
-                        else parseOut.Add("\t'" + line + "',");
-                    }
+                        else parseOut.AddOption(line, method);
+                    });
                     copying = false;
                 }
                 else if (cline.Contains("Creator_PostBuild_devicePart_Line"))
                 {
-                    parseOut.Add("devicePart = '" + xmlOut.devicePart + "'");
+                    //parseOut.Add("devicePart = '" + defaultXmlOut.devicePart + "'");
+                    var xmlOut = xmlOuts.GetMatchingXmlResults(cline, defaultID);
+                    parseOut.AddVariable("devicePart", xmlOut == null ? "" : xmlOut.devicePart, method);
                     copying = false; linesStripped = 1;
                 }
                 else if (cline.Contains("Creator_PostBuild_linkerFile"))
                 {
-                    parseOut.Add("linkerFile = '" + xmlOut.linkerFile.Replace('\\', '/') + "'");
+                    var xmlOut = xmlOuts.GetMatchingXmlResults(cline, defaultID);
+                    parseOut.AddVariable("linkerFile", xmlOut == null ? "" : xmlOut.linkerFile.Replace('\\', '/'), method);
                     copying = false; linesStripped = 1;
                 }
                 else if (cline.Contains("Creator_PostBuild_SVDfile_Line"))
                 {
-                    parseOut.Add("SVDfile = '" + xmlOut.SVDfile + "'");
+                    var xmlOut = xmlOuts.GetMatchingXmlResults(cline, defaultID);
+                    parseOut.AddVariable("SVDfile", xmlOut == null ? "" : xmlOut.SVDfile, method);
                     copying = false; linesStripped = 1;
                 }
                 else if (cline.Contains("Creator_PostBuild_prePostBuild_Lines"))
                 {
-                    parseOut.Add("preBuildCommands = '" + xmlOut.prebuild + "'");
-                    parseOut.Add("postBuildCommands = '" + xmlOut.postbuild + "'");
+                    var xmlOut = xmlOuts.GetMatchingXmlResults(cline, defaultID);
+                    parseOut.AddVariable("preBuildCommands", xmlOut == null ? "" : xmlOut.prebuild, method);
+                    parseOut.AddVariable("postBuildCommands", xmlOut == null ? "" : xmlOut.postbuild, method);
                     copying = false; linesStripped = 2;
                 }
                 else if (cline.Contains("Creator_PostBuild_Version_Line"))
                 {
-                    parseOut.Add("creatorPostBuildVersion = '" + version + "'");
+                    parseOut.AddVariable("creatorPostBuildVersion", version, method);
                     copying = false; linesStripped = 1;
                 }
                 else if (cline.Contains("Creator_PostBuild_DateTime_Line"))
                 {
-                    parseOut.Add("creatorGeneratedDateTime = '" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "'");
+                    parseOut.AddVariable("creatorGeneratedDateTime", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), method);
                     copying = false; linesStripped = 1;
                 }
                 else if (cline.Contains("Creator_PostBuild_Directory_Line"))
                 {
-                    parseOut.Add("creatorDirectory = '" + new DirectoryInfo(Environment.CurrentDirectory).Name + "'");
+                    parseOut.AddVariable("creatorDirectory", new DirectoryInfo(Environment.CurrentDirectory).Name, method);
                     copying = false; linesStripped = 1;
                 }
             }
 
-            if (copying == false) return new parseResult_c("PARSE ERROR, check meson.build insert syntax.\r\n", 1, false);
-            if (minimumVersion == "") return new parseResult_c("Error: Creator_PostBuild_Minumum_Version not found!\r\nUse updated meson.build template.\r\n", 1, false);
+            if (copying == false) return new parseResult_c($"PARSE ERROR, check {fileName} insert syntax.\r\n", 1, false);
+            if (minimumVersion == "") return new parseResult_c($"Error: Creator_PostBuild_Minumum_Version not found!\r\nUse updated {fileName} template.\r\n", 1, false);
             var result = Regex.Matches(minimumVersion, "['\"](\\d*\\.\\d*)['\"]");
             try
             {
                 if (float.Parse(result[0].Groups[1].Value) > float.Parse(version))
-                    return new parseResult_c("Error: Creator_PostBuild Minumum Version not met. Update meson.build.\r\n", 1, false);
+                    return new parseResult_c($"Error: Creator_PostBuild Minumum Version not met. Update {fileName}.\r\n", 1, false);
             }
             catch
             {
-                return new parseResult_c("Error: Creator_PostBuild_Minumum_Version insert error, check syntax.\r\n", 1, false);
+                return new parseResult_c($"Error: Creator_PostBuild_Minumum_Version insert error, check {fileName} syntax.\r\n", 1, false);
             }
 
             return parseResult;
