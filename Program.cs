@@ -165,7 +165,7 @@ namespace Creator_PostBuild
 
     class Program
     {
-        const string version = "2.20";
+        const string version = "2.22";
         static string absLinkPath = "";
 
         static string NormalizePath(string path)
@@ -182,7 +182,10 @@ namespace Creator_PostBuild
 
         public struct options
         {
-            public static bool targetOTX = false;
+            public static bool parseCyFitterOTX = false;
+            public static bool onlyM4 = false;
+            public static bool noLinkerFile = false; 
+            public static bool noLibPath = false;
             public static bool keepMain = false;
             public static bool dualCore = false;
         }
@@ -217,6 +220,8 @@ namespace Creator_PostBuild
                     "                removes the linker file from the linker options.\r\n" +
                     "                parses cy_ble_clk.h to remove SFLASH->RADIO_LDO_TRIMS.\r\n" +
                     "-keepMain     : keep the references to the main project sourcefiles.\r\n" +
+                    "-noLinkerFile : remove linker file reference from linker options.\r\n" +
+                    "-noLibPath    : remove library path from linker options.\r\n" +
                     "-absLinkPath  : provide an absolute linker path (absLinkPath=\"C:\\this path\").\r\n" +
                     "-absLinkPathV : provide a qouted absolute linker path for a meson variable (absLinkPathV=CREATOR_DIR)."
                  );
@@ -231,8 +236,15 @@ namespace Creator_PostBuild
 
             foreach (var arg in args)
             {
-                if (arg.Contains("-targetOTX")) options.targetOTX = true;
+                if (arg.Contains("-targetOTX")) {
+                    options.parseCyFitterOTX = true;
+                    options.onlyM4 = true;
+                    options.noLibPath = true;
+                    options.noLinkerFile = true;
+                }
                 if (arg.Contains("-keepMain")) options.keepMain = true;
+                if (arg.Contains("-noLinkerFile")) options.noLinkerFile = true;
+                if (arg.Contains("-noLibPath")) options.noLibPath = true;
                 if (arg.Contains("-absLinkPath="))
                 {
                     absLinkPath = arg.Replace("-absLinkPath=", "");
@@ -281,14 +293,8 @@ namespace Creator_PostBuild
                 if (parseXMLfileResult.message != "") Console.WriteLine(parseXMLfileResult.message);
                 if (parseXMLfileResult.error != 0) Environment.Exit(parseXMLfileResult.error);
                 MergeIncludeFoldersFromOptions(xmlOut, xmlOut.compilerOptions);                             // add folders specified by the compiler options (-I)
-                if (!options.targetOTX || xmlOut.fromFile == "CortexM4")                                    // for targetOTX only add CortexM4
+                if (!options.onlyM4 || xmlOut.fromFile == "CortexM4")                                    // for targetOTX only add CortexM4
                     xmlOuts.Add(xmlOut);
-
-                //{
-                //    File.WriteAllLines("sourceFiles.txt", xmlOut.sourceFiles);
-                //    File.WriteAllLines("headerIncludeDirs.txt", xmlOut.includeFolders);
-                //    File.WriteAllLines("librarySources.txt", xmlOut.libraryFiles);
-                //}
 
             }
             if (xmlOuts.Count < 1)
@@ -297,7 +303,7 @@ namespace Creator_PostBuild
                 Environment.Exit(1);
             }
 
-            if (options.targetOTX)      // Parse of CyFitter File into new file for OTX if needed
+            if (options.parseCyFitterOTX)      // Parse of CyFitter File into new file for OTX if needed
             {
                 if (fileCyFitter != "")
                 {
@@ -326,7 +332,6 @@ namespace Creator_PostBuild
                 if (parseMesonBuildResult.writeOutput) File.WriteAllLines(buildFile.fileName, parseMesonBuildResult.output as List<string>);
                 if (parseMesonBuildResult.error != 0) Environment.Exit(parseMesonBuildResult.error);
             }
-
         }
 
         private static parseResult_c parseXMLfile(string filenname, bool keepMain)
@@ -463,46 +468,6 @@ namespace Creator_PostBuild
             }
         }
 
-        //private static parseResult_c parseXMLfile2(string cFileName, out string devicePart)
-        //{
-        //    devicePart = null;
-        //    if (!File.Exists(cFileName)) return new parseResult_c("Error, can not find target file!", 1, false);
-        //    string[] cFile = File.ReadAllLines(cFileName);
-        //    parseResult_c parseResult = new parseResult_c("Done!", 0, true);
-        //    int idx;
-        //    foreach (string cline in cFile)
-        //    {
-        //        if ((idx = cline.IndexOf("Device Part=\"")) >= 0)
-        //        {
-        //            string line = cline.Substring(idx + 13);
-        //            if ((idx = line.IndexOf('\"')) > 0) devicePart = line.Substring(0, idx);
-        //        }
-
-        //        else if ((idx = cline.IndexOf("<File BuildType=\"BUILD\"")) >= 0)
-        //        {
-        //            if ((cline.IndexOf("Toolchain=\"\"", idx) >= 0 || cline.IndexOf("Toolchain=\"ARM GCC Generic\"", idx) >= 0) && (idx = cline.IndexOf("\">")) >= 0)
-        //            {
-        //                string line = cline.Substring(idx + 2);
-        //                if ((idx = line.IndexOf("</File>")) < 1) return new parseResult_c("PARSE ERROR in XML file.\r\n", 1, false);
-        //                line = line.Substring(0, idx).Replace('\\', '/');
-        //                if (line == "main.c") continue;
-        //                if (line.ToLower().EndsWith(".c") || line.ToLower().EndsWith(".s")) parseResult.lines1.Add(line);
-        //                else if (line.ToLower().EndsWith(".h"))
-        //                {
-        //                    if ((idx = line.LastIndexOf('/')) > 0)
-        //                    {
-        //                        line = line.Substring(0, idx + 1);
-        //                        if (!parseResult.lines2.Contains(line))
-        //                            parseResult.lines2.Add(line);
-        //                    }
-        //                }
-        //                else if (line.ToLower().EndsWith(".a")) parseResult.lines3.Add(line);
-        //            }
-        //        }
-        //    }
-        //    return parseResult;
-        //}
-
         private static parseResult_c parseCyFitterCfg(string cFileName, xmlResult xmlOut)
         {
             if (!File.Exists(cFileName)) return new parseResult_c("Error, can not find target file!", 1, false);
@@ -561,8 +526,16 @@ namespace Creator_PostBuild
                     Console.WriteLine("Found Cy_SystemInit() at line " + cnt + ", skipping code...");
                     //cline = @"void UDBInit(void)";
                     stopInfo =
-                        @"	CyDelay(1500); /* Failsafe guard: wrong clocksettings may brick the Onethinx module. Remove this delay in the release version. */" + "\r\n\r\n" +
-                        @"	/* Removed Onethinx Core conflicting code by Onethinx Creator PostBuild */" + "\r\n";
+                        "    /* \r\n" +
+                        "     * Failsafe guard: This startup delay prevents the Onethinx module \r\n" +
+                        "     * from bricking in case of incorrect clock configuration. \r\n" +
+                        "     * Define REMOVE_OTX_STARTUP_DELAY to omit this delay in release builds. \r\n" +
+                        "     */\r\n" +
+                        "    #ifndef REMOVE_OTX_STARTUP_DELAY\r\n" +
+                        "        CyDelay(1000);\r\n" +
+                        "    #endif\r\n" +
+                        "\r\n" +
+                        "    /* Removed Onethinx Core conflicting code by Onethinx Creator PostBuild */\r\n";
 
                     stopOverCnt = 2;
                 }
@@ -698,11 +671,9 @@ namespace Creator_PostBuild
                 }
                 else if (cline.Contains("Creator_PostBuild_AssemblerOptions_Start"))
                 {
-                    //foreach (string line in fixAndStripOptions(xmlOut.assemblerOptions, true))
                     xmlOuts.ProcessMatchingXmlResults(cline, defaultID, x => fixAndStripOptions(x.assemblerOptions, true), line =>
                     {
                         parseOut.AddOption(line, method);
-                        //parseOut.Add("\t'" + line + "',");
                     });
                     copying = false;
                 }
@@ -711,7 +682,6 @@ namespace Creator_PostBuild
                     //foreach (string line in fixAndStripOptions(xmlOut.compilerOptions, true))
                     xmlOuts.ProcessMatchingXmlResults(cline, defaultID, x => fixAndStripOptions(x.compilerOptions, true), line =>
                     {
-                        //parseOut.Add("\t'" + line + "',");
                         parseOut.AddOption(line, method);
                     });
                     copying = false;
@@ -721,14 +691,20 @@ namespace Creator_PostBuild
                     //foreach (string line in fixAndStripOptions(xmlOut.linkerOptions, true))
                     xmlOuts.ProcessMatchingXmlResults(cline, defaultID, x => fixAndStripOptions(x.linkerOptions, true), line =>
                     {
-                        //if (!targetOTX || (!line.StartsWith("-L") && !line.StartsWith("-T")))      // if OTX found, do not add -L and -T options
-                        //    parseOut.Add("\t'" + line + "',");
-                        if (line.StartsWith("-L") || line.StartsWith("-T"))     // check for folder references
+                        if (line.StartsWith("-T"))
                         {
-                            if (!options.targetOTX) //parseOut.Add("\t'" + line.Insert(2, absLinkPath).Replace('\\', '/') + "',");       // Reformat and add when not using OTX target
-                                parseOut.AddOption(line.Insert(2, absLinkPath).Replace('\\', '/'), method);       // Reformat and add when not using OTX target
+                            if (!options.noLinkerFile)
+                                parseOut.AddOption(line.Insert(2, absLinkPath).Replace('\\', '/'), method);
                         }
-                        else parseOut.AddOption(line, method);
+                        else if (line.StartsWith("-L"))
+                        {
+                            if (!options.noLibPath)
+                            parseOut.AddOption(line.Insert(2, absLinkPath).Replace('\\', '/'), method);
+                        }
+                        else
+                        {
+                            parseOut.AddOption(line, method);
+                        }
                     });
                     copying = false;
                 }
